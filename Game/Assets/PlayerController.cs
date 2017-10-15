@@ -25,6 +25,10 @@ public class PlayerController : MonoBehaviour
     Camera cam;
     public MoveState moveState;
 
+    bool rotating = false;
+
+    private readonly Vector2 tiltBounds = new Vector2(30, 90); 
+
     public enum MoveState
     {
         ClickDrag = 0,
@@ -42,6 +46,7 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
+        rotating = Input.GetMouseButton(1);
         /*
         switch (moveState)
         {
@@ -71,17 +76,33 @@ public class PlayerController : MonoBehaviour
         y *= Time.deltaTime;
         Vector3 shiftMove = new Vector3(y, 0, x);
 
+        zoom -= Input.GetAxis("Mouse ScrollWheel") * zoomSpeed;
+
+        cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, zoom, Time.deltaTime * zoomSpeed);     
+
+        if (Input.GetAxis("Horizontal") != 0 && rotating)
+        {
+            transform.RotateAround(cursorTarget.transform.position, Vector3.up, Input.GetAxis("Horizontal"));
+        }
+
+        if (Input.GetAxis("Vertical") != 0 && rotating)
+        {
+            transform.RotateAround(cursorTarget.transform.position, transform.right, Input.GetAxis("Vertical"));
+        }
+        
+        if(!rotating)
+        {
+            transform.Translate(shiftMove * speed, Space.Self);
+        }
+    }
+
+    void LateUpdate()
+    {
         Ray ray = cam.ScreenPointToRay(Input.mousePosition);
 
-        if (Physics.Raycast(ray, out hit, 1000))
+        if (Physics.Raycast(ray, out hit, 1000) && !rotating)
         {
             cursorTarget.transform.position = hit.point;
         }
-
-        zoom -= Input.GetAxis("Mouse ScrollWheel") * zoomSpeed;
-
-        cam.orthographicSize = Mathf.Lerp(cam.orthographicSize, zoom, Time.deltaTime * zoomSpeed);
-       
-        transform.Translate(shiftMove, Space.World);
     }
 }
