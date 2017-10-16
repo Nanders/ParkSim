@@ -5,9 +5,12 @@ using UnityEngine;
 public class PlayerController : MonoBehaviour
 {
     public GameObject cursorTarget;
+    public LayerMask boundingMask;
     public float speed = 10.0F;
     public float zoomSpeed = 10.0F;
     public float zoomSmooth = 10.0F;
+
+    public float yBound;
 
     public float dragSpeed = 2;
     //private Vector3 dragOrigin;
@@ -19,22 +22,19 @@ public class PlayerController : MonoBehaviour
     public float minZoom;
 
     private float zoom;
-    private bool isDragging;
 
-    private Vector3 onClickPoint;
-
-    public LayerMask dragMask;
+    public LayerMask interactMask;
     RaycastHit hit;
     Camera cam;
-    public MoveState moveState;
+    public State state;
 
     bool rotating = false;
 
     private Vector3 mouseDownPoint;
 
-    private readonly Vector2 tiltBounds = new Vector2(30, 90); 
+    private readonly Vector2 tiltBounds = new Vector2(20, 90); 
 
-    public enum MoveState
+    public enum State
     {
         ClickDrag = 0,
         ScreenEdgePan = 1,
@@ -53,7 +53,7 @@ public class PlayerController : MonoBehaviour
     {
         rotating = Input.GetMouseButton(1);
         /*
-        switch (moveState)
+        switch (state)
         {
             case MoveState.ClickDrag:
                 Debug.Log("Blah");
@@ -83,7 +83,9 @@ public class PlayerController : MonoBehaviour
 
         zoom -= Input.GetAxis("Mouse ScrollWheel") * zoomSpeed;
 
-        cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, zoom, Time.deltaTime * zoomSpeed);
+        var moveZoom = new Vector3(0, 0, zoom);
+
+        cam.orthographicSize = Mathf.Lerp(cam.orthographicSize, zoom, Time.deltaTime * zoomSmooth);
 
         if (Input.GetMouseButtonDown(1))
             mouseDownPoint = Input.mousePosition;
@@ -92,14 +94,16 @@ public class PlayerController : MonoBehaviour
         {
             var mouseHorzDelta = mouseDownPoint.x - Input.mousePosition.x;
             var mouseVertDelta = mouseDownPoint.y - Input.mousePosition.y;
+            
             transform.RotateAround(cursorTarget.transform.position, Vector3.up, -mouseHorzDelta * rotateSensitivity);
             transform.RotateAround(cursorTarget.transform.position, transform.right, mouseVertDelta * rotateSensitivity);
+
             mouseDownPoint = Input.mousePosition;
         }
         
         if(!rotating)
         {
-            transform.Translate(shiftMove * speed, Space.Self);
+            transform.Translate(Quaternion.AngleAxis(transform.rotation.eulerAngles.y, Vector3.up) * (shiftMove * speed), Space.World);
         }
     }
 
@@ -107,9 +111,20 @@ public class PlayerController : MonoBehaviour
     {
         Ray ray = cam.ScreenPointToRay(Input.mousePosition);
 
-        if (Physics.Raycast(ray, out hit, 1000) && !rotating)
+        if (Physics.Raycast(ray, out hit, 1000, interactMask) && !rotating)
         {
             cursorTarget.transform.position = hit.point;
+        }
+        AdjustToBounds();
+    }
+
+    void AdjustToBounds()
+    {
+        Ray boundingRay = cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
+        RaycastHit hit;
+        if (Physics.Raycast(boundingRay, out hit, 1000, boundingMask))
+        {
+            transform.position = hit.point;
         }
     }
 }
