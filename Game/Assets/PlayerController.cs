@@ -9,8 +9,7 @@ public class PlayerController : MonoBehaviour
     public float speed = 10.0F;
     public float zoomSpeed = 10.0F;
     public float zoomSmooth = 10.0F;
-
-    public float yBound;
+    public bool freeLook;
 
     public float dragSpeed = 2;
     //private Vector3 dragOrigin;
@@ -94,9 +93,9 @@ public class PlayerController : MonoBehaviour
         {
             var mouseHorzDelta = mouseDownPoint.x - Input.mousePosition.x;
             var mouseVertDelta = mouseDownPoint.y - Input.mousePosition.y;
-            
-            transform.RotateAround(cursorTarget.transform.position, Vector3.up, -mouseHorzDelta * rotateSensitivity);
-            transform.RotateAround(cursorTarget.transform.position, transform.right, mouseVertDelta * rotateSensitivity);
+            var target = freeLook ? this.transform.position : cursorTarget.transform.position;
+            transform.RotateAround(target, Vector3.up, -mouseHorzDelta * rotateSensitivity);
+            transform.RotateAround(target, transform.right, mouseVertDelta * rotateSensitivity);
 
             mouseDownPoint = Input.mousePosition;
         }
