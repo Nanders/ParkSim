@@ -6,16 +6,26 @@ using UnityEngine;
 public class ActionManager : BehaviourSingleton<ActionManager>
 {
     public int undoLength;
-    private DropoutStack<Action> undoStack;
+    private DropoutStack<IAction> undoStack = new DropoutStack<IAction>(20);
 
-	void Start ()
+    public void PushAction(IAction action)
     {
-        undoStack = new DropoutStack<Action>(undoLength);
+        undoStack.Push(action);
     }
-	
+
+    public void Redo()
+    {
+        throw new NotImplementedException();
+    }
+
+    public void Undo()
+    {
+        var action = undoStack.Pop();
+        action.Undo();
+    }
 }
 
-public interface IUndoAction
+public interface IAction
 {
     void Do();
     void Undo();
