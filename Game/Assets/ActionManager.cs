@@ -6,13 +6,17 @@ using UnityEngine;
 public class ActionManager : BehaviourSingleton<ActionManager>
 {
     public int undoLength;
-    public int undoStackLegnth;
-    public int redoStackLength;
 
     void Update()
     {
-        undoStackLegnth = undoStack.Count();
-        redoStackLength = redoStack.Count();
+        //Ctrl+Z, Ctrl+Shift+Z
+        if (Input.GetKey(KeyCode.LeftControl) && Input.GetKeyDown(KeyCode.Z))
+        {
+            if (Input.GetKey(KeyCode.LeftShift))
+                Redo();
+            else
+                Undo();
+        }
     }
 
     private DropoutStack<IAction> undoStack = new DropoutStack<IAction>(20);
