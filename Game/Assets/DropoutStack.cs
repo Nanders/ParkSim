@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 public class DropoutStack<T> : IEnumerable<T>
 {
-    private readonly T[] _items;
+    private T[] _items;
     /// <summary>
     /// The top - where the next item will be pushed in the array.
     /// </summary>
@@ -14,6 +14,8 @@ public class DropoutStack<T> : IEnumerable<T>
     /// </summary>
     private int _count; // The amount of items in the array.
 
+    private int _capacity;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="EnumerableDropOutStack{T}"/> class.
     /// </summary>
@@ -21,6 +23,7 @@ public class DropoutStack<T> : IEnumerable<T>
     public DropoutStack(int capacity)
     {
         _items = new T[capacity];
+        _capacity = capacity; 
     }
 
     /// <summary>
@@ -99,6 +102,7 @@ public class DropoutStack<T> : IEnumerable<T>
     /// </summary>
     public void Clear()
     {
+        _items = new T[_capacity];
         _count = 0;
     }
 

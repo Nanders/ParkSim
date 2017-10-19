@@ -35,6 +35,7 @@ public class MoveAction : Action, IAction
 public class CreateAction : Action, IAction
 {
     private GameObject go;
+    private GameObject createdGo;
     private Vector3 createPosition;
     private Quaternion createRotation;
 
@@ -47,12 +48,12 @@ public class CreateAction : Action, IAction
 
     public void Do()
     {
-        go = GameObject.Instantiate(go, createPosition, createRotation);
+        createdGo = GameObject.Instantiate(go, createPosition, createRotation);
     }
 
     public void Undo()
     {
-        GameObject.Destroy(this.go);
+        GameObject.Destroy(this.createdGo);
     }
 }
 
