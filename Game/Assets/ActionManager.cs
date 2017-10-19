@@ -5,8 +5,6 @@ using UnityEngine;
 
 public class ActionManager : BehaviourSingleton<ActionManager>
 {
-    public int undoLength;
-
     void Update()
     {
         //Ctrl+Z, Ctrl+Shift+Z
@@ -19,10 +17,8 @@ public class ActionManager : BehaviourSingleton<ActionManager>
         }
     }
 
-    private DropoutStack<IAction> undoStack = new DropoutStack<IAction>(20);
-    private DropoutStack<IAction> redoStack = new DropoutStack<IAction>(20);
-
-    private IAction lastAction;
+    private DropoutStack<IAction> undoStack = new DropoutStack<IAction>(100);
+    private DropoutStack<IAction> redoStack = new DropoutStack<IAction>(100);
 
     public void PushAction(IAction action)
     {
@@ -33,7 +29,7 @@ public class ActionManager : BehaviourSingleton<ActionManager>
     public void Redo()
     {
         var action = redoStack.Pop();
-        if (action == null || action == lastAction)
+        if (action == null)
             return;
         undoStack.Push(action);
         action.Do();
