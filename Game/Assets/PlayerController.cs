@@ -12,14 +12,14 @@ public class PlayerController : MonoBehaviour
     public float zoomSmooth = 10.0F;
     public bool freeLook;
 
-    public float dragSpeed = 2;
-    //private Vector3 dragOrigin;
-
     public float rotateSensitivity;
 
 
-    public float maxZoom;
-    public float minZoom;
+    public float maxZoom = 100f;
+    public float minZoom = 0f;
+
+    public float maxPitch = 90f;
+    public float minPitch = 30f;
 
     private float zoom;
 
@@ -31,8 +31,6 @@ public class PlayerController : MonoBehaviour
     bool rotating = false;
 
     private Vector3 mouseDownPoint;
-
-    private readonly Vector2 tiltBounds = new Vector2(20, 90); 
 
     public enum State
     {
@@ -83,8 +81,7 @@ public class PlayerController : MonoBehaviour
 
         zoom -= Input.GetAxis("Mouse ScrollWheel") * zoomSpeed;
 
-        var moveZoom = new Vector3(0, 0, zoom);
-
+        zoom = Mathf.Clamp(zoom, minZoom, maxZoom);
         cam.orthographicSize = Mathf.Lerp(cam.orthographicSize, zoom, Time.deltaTime * zoomSmooth);
 
         if (Input.GetMouseButtonDown(1))
@@ -102,8 +99,16 @@ public class PlayerController : MonoBehaviour
             var mouseHorzDelta = mouseDownPoint.x - Input.mousePosition.x;
             var mouseVertDelta = mouseDownPoint.y - Input.mousePosition.y;
             var target = freeLook ? this.transform.position : cursorTarget.transform.position;
+
+            //Y axis rotation
             transform.RotateAround(target, Vector3.up, -mouseHorzDelta * rotateSensitivity);
-            transform.RotateAround(target, transform.right, mouseVertDelta * rotateSensitivity);
+
+            //Clamp X rotation
+            if (transform.rotation.eulerAngles.x + mouseVertDelta * rotateSensitivity > minPitch && 
+                transform.rotation.eulerAngles.x + mouseVertDelta * rotateSensitivity < maxPitch)
+            {
+                transform.RotateAround(target, transform.right, mouseVertDelta * rotateSensitivity);
+            }   
 
             mouseDownPoint = Input.mousePosition;
         }
