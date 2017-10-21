@@ -45,8 +45,4 @@ public class ActionManager : BehaviourSingleton<ActionManager>
     }
 }
 
-public interface IAction
-{
-    void Do();
-    void Undo();
-}
+
