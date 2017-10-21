@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
+    public GameObject onClickObject;
     public GameObject cursorTarget;
     public LayerMask boundingMask;
     public float speed = 10.0F;
@@ -88,6 +89,13 @@ public class PlayerController : MonoBehaviour
 
         if (Input.GetMouseButtonDown(1))
             mouseDownPoint = Input.mousePosition;
+
+        if (Input.GetMouseButtonDown(0))
+        {
+            var action = new CreateAction(onClickObject, cursorTarget.transform.position, Quaternion.identity);
+            action.Do();
+            ActionManager.obj.PushAction(action);          
+        }
 
         if (rotating)
         {
