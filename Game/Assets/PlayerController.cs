@@ -89,7 +89,7 @@ public class PlayerController : MonoBehaviour
 
         zoom = Mathf.Clamp(zoom, minZoom, maxZoom);
         cam.orthographicSize = Mathf.Lerp(cam.orthographicSize, zoom, Time.deltaTime * zoomSmooth);
-        boundingCollider.radius = cam.orthographicSize * 2f;
+        boundingCollider.radius = cam.orthographicSize;
 
         if (Input.GetMouseButtonDown(1))
             mouseDownPoint = Input.mousePosition;
