@@ -3,6 +3,8 @@
 public class PlayerController : MonoBehaviour
 {
     public GameObject onClickObject;
+    public GameObject boundingSphere;
+    private SphereCollider boundingCollider;
 
     public LayerMask boundingMask;
 
@@ -48,6 +50,7 @@ public class PlayerController : MonoBehaviour
         Cursor.lockState = CursorLockMode.Confined;
         cam = Camera.main;
         zoom = cam.orthographicSize;
+        boundingCollider = boundingSphere.GetComponent<SphereCollider>();
     }
 
     void Update()
@@ -86,6 +89,7 @@ public class PlayerController : MonoBehaviour
 
         zoom = Mathf.Clamp(zoom, minZoom, maxZoom);
         cam.orthographicSize = Mathf.Lerp(cam.orthographicSize, zoom, Time.deltaTime * zoomSmooth);
+        boundingCollider.radius = cam.orthographicSize * 2f;
 
         if (Input.GetMouseButtonDown(1))
             mouseDownPoint = Input.mousePosition;
@@ -136,8 +140,14 @@ public class PlayerController : MonoBehaviour
 
         if (Physics.Raycast(ray, out hit, 1000, interactMask) && !rotating)
         {
-            rotateCenter = hit.point;
+            rotateCenter = hit.point;         
         }
+
+        if (Physics.Raycast(cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0)), out hit, 1000, interactMask))
+        {
+            boundingSphere.transform.position = hit.point;
+        }        
+
         AdjustToBounds();
     }
 
