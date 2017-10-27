@@ -1,25 +1,28 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
     public GameObject onClickObject;
-    public GameObject cursorTarget;
+    public GameObject boundingSphere;
+    private SphereCollider boundingCollider;
+
     public LayerMask boundingMask;
+
+    [Range(1, 20)]
     public float speed = 10.0F;
     public float zoomSpeed = 10.0F;
     public float zoomSmooth = 10.0F;
     public bool freeLook;
 
-    public float dragSpeed = 2;
-    //private Vector3 dragOrigin;
+    public float boundary;
 
     public float rotateSensitivity;
 
+    public float maxZoom = 100f;
+    public float minZoom = 0f;
 
-    public float maxZoom;
-    public float minZoom;
+    public float maxPitch = 90f;
+    public float minPitch = 30f;
 
     private float zoom;
 
@@ -28,11 +31,10 @@ public class PlayerController : MonoBehaviour
     Camera cam;
     public State state;
 
-    bool rotating = false;
+    private bool rotating = false;
 
     private Vector3 mouseDownPoint;
-
-    private readonly Vector2 tiltBounds = new Vector2(20, 90); 
+    private Vector3 rotateCenter;
 
     public enum State
     {
@@ -45,8 +47,10 @@ public class PlayerController : MonoBehaviour
 
     void Start()
     {
+        Cursor.lockState = CursorLockMode.Confined;
         cam = Camera.main;
         zoom = cam.orthographicSize;
+        boundingCollider = boundingSphere.GetComponent<SphereCollider>();
     }
 
     void Update()
@@ -75,24 +79,24 @@ public class PlayerController : MonoBehaviour
                 break;
         }
         */
-        float x = Input.GetAxis("Vertical");
-        float y = Input.GetAxis("Horizontal");
-        x *= Time.deltaTime;
+        float y = Input.GetAxis("Vertical");
+        float x = Input.GetAxis("Horizontal");
         y *= Time.deltaTime;
-        Vector3 shiftMove = new Vector3(y, 0, x);
+        x *= Time.deltaTime;
+        
 
         zoom -= Input.GetAxis("Mouse ScrollWheel") * zoomSpeed;
 
-        var moveZoom = new Vector3(0, 0, zoom);
-
+        zoom = Mathf.Clamp(zoom, minZoom, maxZoom);
         cam.orthographicSize = Mathf.Lerp(cam.orthographicSize, zoom, Time.deltaTime * zoomSmooth);
+        boundingCollider.radius = cam.orthographicSize;
 
         if (Input.GetMouseButtonDown(1))
             mouseDownPoint = Input.mousePosition;
 
         if (Input.GetMouseButtonDown(0))
         {
-            var action = new CreateAction(onClickObject, cursorTarget.transform.position, Quaternion.identity);
+            var action = new CreateAction(onClickObject, rotateCenter, Quaternion.identity);
             action.Do();
             ActionManager.obj.PushAction(action);          
         }
@@ -101,15 +105,31 @@ public class PlayerController : MonoBehaviour
         {
             var mouseHorzDelta = mouseDownPoint.x - Input.mousePosition.x;
             var mouseVertDelta = mouseDownPoint.y - Input.mousePosition.y;
-            var target = freeLook ? this.transform.position : cursorTarget.transform.position;
-            transform.RotateAround(target, Vector3.up, -mouseHorzDelta * rotateSensitivity);
-            transform.RotateAround(target, transform.right, mouseVertDelta * rotateSensitivity);
+            var target = freeLook ? this.transform.position : rotateCenter;
+
+            var mouseHorzScaled = mouseHorzDelta * rotateSensitivity;
+            var mouseVertScaled = mouseVertDelta * rotateSensitivity;
+
+            //Y axis rotation
+            transform.RotateAround(target, Vector3.up, -mouseHorzScaled);
+
+            //Clamp X rotation
+            if (transform.rotation.eulerAngles.x + mouseVertScaled > minPitch && 
+                transform.rotation.eulerAngles.x + mouseVertScaled < maxPitch)
+            {
+                transform.RotateAround(target, transform.right, mouseVertScaled);
+            }   
 
             mouseDownPoint = Input.mousePosition;
         }
         
         if(!rotating)
         {
+            var edgePan = EdgePan(x, y);
+            y = edgePan.y;
+            x = edgePan.x;
+
+            Vector3 shiftMove = new Vector3(x, 0, y);
             transform.Translate(Quaternion.AngleAxis(transform.rotation.eulerAngles.y, Vector3.up) * (shiftMove * speed), Space.World);
         }
     }
@@ -120,8 +140,14 @@ public class PlayerController : MonoBehaviour
 
         if (Physics.Raycast(ray, out hit, 1000, interactMask) && !rotating)
         {
-            cursorTarget.transform.position = hit.point;
+            rotateCenter = hit.point;         
         }
+
+        if (Physics.Raycast(cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0)), out hit, 1000, interactMask))
+        {
+            boundingSphere.transform.position = hit.point;
+        }        
+
         AdjustToBounds();
     }
 
@@ -133,5 +159,56 @@ public class PlayerController : MonoBehaviour
         {
             transform.position = hit.point;
         }
+    }
+
+    Vector2 EdgePan(float x, float y)
+    {
+        float xDelta = 0;
+        float yDelta = 0;
+
+        if (Input.mousePosition.x > Screen.width - boundary)
+        {
+            xDelta = Mathf.Abs(Input.mousePosition.x - (Screen.width - boundary));
+            xDelta = xDelta.Remap(0, boundary, 0, 1);
+            xDelta = Mathf.Clamp(xDelta, 0, 1); //this can happen in unity when the mouse is not bounded to screen
+
+            x += xDelta * Time.deltaTime;
+        }
+
+        if (Input.mousePosition.x < boundary)
+        {
+            xDelta = Mathf.Abs(Input.mousePosition.x - boundary);
+            xDelta = xDelta.Remap(0, boundary, 0, 1);
+            xDelta = Mathf.Clamp(xDelta, 0, 1); //this can happen in unity when the mouse is not bounded to screen
+            x -= xDelta * Time.deltaTime;
+        }
+
+        if (Input.mousePosition.y > Screen.height - boundary)
+        {
+            yDelta = Mathf.Abs(Input.mousePosition.y - (Screen.height - boundary));
+            yDelta = yDelta.Remap(0, boundary, 0, 1);
+            yDelta = Mathf.Clamp(yDelta, 0, 1); //this can happen in unity when the mouse is not bounded to screen
+
+            y += yDelta * Time.deltaTime;
+        }
+
+        if (Input.mousePosition.y < boundary)
+        {
+            yDelta = Mathf.Abs(Input.mousePosition.y - boundary);
+            yDelta = yDelta.Remap(0, boundary, 0, 1);
+            yDelta = Mathf.Clamp(yDelta, 0, 1); //this can happen in unity when the mouse is not bounded to screen
+            y -= yDelta * Time.deltaTime;
+        }
+        
+        return new Vector2(x, y);
+    }
+}
+
+//TODO: Move to new place
+public static class ExtensionMethods
+{
+    public static float Remap(this float value, float from1, float to1, float from2, float to2)
+    {
+        return (value - from1) / (to1 - from1) * (to2 - from2) + from2;
     }
 }
