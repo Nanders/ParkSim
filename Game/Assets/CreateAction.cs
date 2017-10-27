@@ -4,7 +4,7 @@ using UnityEngine;
 public class CreateAction : Action, IAction
 {
     private GameObject go;
-    private GameObject createdGo;
+    public GameObject createdGo { get; private set; }
     private Vector3 createPosition;
     private Quaternion createRotation;
 
@@ -13,6 +13,9 @@ public class CreateAction : Action, IAction
         this.go = gameObject;
         this.createPosition = position;
         this.createRotation = rotation;
+
+        Do();
+        ActionManager.obj.PushAction(this);
     }
 
     public void Do()
@@ -22,6 +25,8 @@ public class CreateAction : Action, IAction
 
     public void Undo()
     {
+        createPosition = createdGo.transform.position;
+        createRotation = createdGo.transform.rotation;
         GameObject.Destroy(this.createdGo);
     }
 }

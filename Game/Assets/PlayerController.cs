@@ -2,11 +2,13 @@
 
 public class PlayerController : MonoBehaviour
 {
+    public GameObject focus;
     public GameObject onClickObject;
     public GameObject boundingSphere;
     private SphereCollider boundingCollider;
 
     public LayerMask boundingMask;
+    public LayerMask snappingMask;
 
     [Range(1, 20)]
     public float speed = 10.0F;
@@ -21,21 +23,26 @@ public class PlayerController : MonoBehaviour
     public float maxZoom = 100f;
     public float minZoom = 0f;
 
-    public float maxPitch = 90f;
-    public float minPitch = 30f;
+    public float maxAngle = 90f;
+    public float minAngle = 30f;
 
     private float zoom;
 
-    public LayerMask interactMask;
+    public LayerMask terrainDragMask;
     RaycastHit hit;
     Camera cam;
-    public State state;
+
 
     private bool rotating = false;
 
-    private Vector3 mouseDownPoint;
-    private Vector3 rotateCenter;
+    private Vector3 lastMousePoint;
+    private Vector3 terrainHitPoint;
 
+    Ray mousePositionRay;
+    Ray screenCenterRay;
+
+    //TODO: move interact states to this
+    public State state;
     public enum State
     {
         ClickDrag = 0,
@@ -47,7 +54,7 @@ public class PlayerController : MonoBehaviour
 
     void Start()
     {
-        Cursor.lockState = CursorLockMode.Confined;
+        Cursor.lockState = CursorLockMode.Confined; //Note, this doesnt work in editor
         cam = Camera.main;
         zoom = cam.orthographicSize;
         boundingCollider = boundingSphere.GetComponent<SphereCollider>();
@@ -55,7 +62,6 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        rotating = Input.GetMouseButton(1);
         /*
         switch (state)
         {
@@ -84,7 +90,8 @@ public class PlayerController : MonoBehaviour
         y *= Time.deltaTime;
         x *= Time.deltaTime;
         
-
+        //TODO: unfuck zoom code
+        //TODO: figure out ortho or use perspective
         zoom -= Input.GetAxis("Mouse ScrollWheel") * zoomSpeed;
 
         zoom = Mathf.Clamp(zoom, minZoom, maxZoom);
@@ -92,20 +99,34 @@ public class PlayerController : MonoBehaviour
         boundingCollider.radius = cam.orthographicSize;
 
         if (Input.GetMouseButtonDown(1))
-            mouseDownPoint = Input.mousePosition;
+            lastMousePoint = Input.mousePosition;
 
         if (Input.GetMouseButtonDown(0))
         {
-            var action = new CreateAction(onClickObject, rotateCenter, Quaternion.identity);
-            action.Do();
-            ActionManager.obj.PushAction(action);          
+            focus = new CreateAction(onClickObject, terrainHitPoint, Quaternion.identity).createdGo;        
         }
 
-        if (rotating)
+        if (Input.GetMouseButton(0))
         {
-            var mouseHorzDelta = mouseDownPoint.x - Input.mousePosition.x;
-            var mouseVertDelta = mouseDownPoint.y - Input.mousePosition.y;
-            var target = freeLook ? this.transform.position : rotateCenter;
+            RaycastHit hitAgain;
+            if (Physics.SphereCast(mousePositionRay, .1f, out hitAgain, 1000f, snappingMask))
+            {
+                if (hitAgain.collider.gameObject.transform.root.gameObject != focus)
+                    focus.transform.position = hitAgain.collider.gameObject.transform.position;
+                else
+                    focus.transform.position = terrainHitPoint;
+            }
+            else
+                focus.transform.position = terrainHitPoint;
+        }
+
+        //pan around
+        if (Input.GetMouseButton(1))
+        {
+            
+            var mouseHorzDelta = lastMousePoint.x - Input.mousePosition.x;
+            var mouseVertDelta = lastMousePoint.y - Input.mousePosition.y;
+            var target = freeLook ? this.transform.position : terrainHitPoint; //rotate around the mouseclick or our origin
 
             var mouseHorzScaled = mouseHorzDelta * rotateSensitivity;
             var mouseVertScaled = mouseVertDelta * rotateSensitivity;
@@ -114,16 +135,16 @@ public class PlayerController : MonoBehaviour
             transform.RotateAround(target, Vector3.up, -mouseHorzScaled);
 
             //Clamp X rotation
-            if (transform.rotation.eulerAngles.x + mouseVertScaled > minPitch && 
-                transform.rotation.eulerAngles.x + mouseVertScaled < maxPitch)
+            if (transform.rotation.eulerAngles.x + mouseVertScaled > minAngle && 
+                transform.rotation.eulerAngles.x + mouseVertScaled < maxAngle)
             {
                 transform.RotateAround(target, transform.right, mouseVertScaled);
             }   
 
-            mouseDownPoint = Input.mousePosition;
+            //update this continuously
+            lastMousePoint = Input.mousePosition;
         }
-        
-        if(!rotating)
+        else
         {
             var edgePan = EdgePan(x, y);
             y = edgePan.y;
@@ -136,14 +157,15 @@ public class PlayerController : MonoBehaviour
 
     void LateUpdate()
     {
-        Ray ray = cam.ScreenPointToRay(Input.mousePosition);
+        mousePositionRay = cam.ScreenPointToRay(Input.mousePosition);
+        screenCenterRay = cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
 
-        if (Physics.Raycast(ray, out hit, 1000, interactMask) && !rotating)
+        if (Physics.Raycast(mousePositionRay, out hit, 1000, terrainDragMask) && !rotating)
         {
-            rotateCenter = hit.point;         
+            terrainHitPoint = hit.point;         
         }
 
-        if (Physics.Raycast(cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0)), out hit, 1000, interactMask))
+        if (Physics.Raycast(screenCenterRay, out hit, 1000, terrainDragMask))
         {
             boundingSphere.transform.position = hit.point;
         }        
