@@ -8,6 +8,7 @@ public class ActionManager : BehaviourSingleton<ActionManager>
     void Update()
     {
         //Ctrl+Z, Ctrl+Shift+Z
+#if !UNITY_EDITOR
         if (Input.GetKey(KeyCode.LeftControl) && Input.GetKeyDown(KeyCode.Z))
         {
             if (Input.GetKey(KeyCode.LeftShift))
@@ -15,6 +16,18 @@ public class ActionManager : BehaviourSingleton<ActionManager>
             else
                 Undo();
         }
+#endif
+#if UNITY_EDITOR
+        if (Input.GetKeyDown(KeyCode.N))
+        {
+            Undo();
+        }
+
+        if (Input.GetKeyDown(KeyCode.M))
+        {
+            Redo();
+        }
+#endif
     }
 
     private DropoutStack<IAction> undoStack = new DropoutStack<IAction>(100);
