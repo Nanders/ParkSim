@@ -109,7 +109,7 @@ public class PlayerController : MonoBehaviour
         if (Input.GetMouseButton(0))
         {
             RaycastHit hitAgain;
-            if (Physics.SphereCast(mousePositionRay, .1f, out hitAgain, 1000f, snappingMask))
+            if (Physics.Raycast(mousePositionRay, out hitAgain, 1000f, snappingMask))
             {
                 if (hitAgain.collider.gameObject.transform.root.gameObject != focus)
                     focus.transform.position = hitAgain.collider.gameObject.transform.position;
