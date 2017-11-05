@@ -1,9 +1,13 @@
 ﻿using UnityEngine;
 
-public class PlayerController : MonoBehaviour
+public class PlayerController : BehaviourSingleton<PlayerController>
 {
-    public GameObject focus;
+    public string read;
+
+    public GameObject focus { get; private set; }
+    public SnapPhantom snapPhantom;
     public GameObject onClickObject;
+    public GameObject[] objects;
     public GameObject boundingSphere;
     private SphereCollider boundingCollider;
 
@@ -62,6 +66,11 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
+        if (Input.GetKeyDown(KeyCode.Q))
+        {
+            int i = (int)Mathf.Round(Random.Range(0, objects.Length));
+            onClickObject = objects[i];
+        }
         /*
         switch (state)
         {
@@ -103,21 +112,71 @@ public class PlayerController : MonoBehaviour
 
         if (Input.GetMouseButtonDown(0))
         {
-            focus = new CreateAction(onClickObject, terrainHitPoint, Quaternion.identity).createdGo;        
+            focus = GameObject.Instantiate(onClickObject, terrainHitPoint, Quaternion.identity);
+            snapPhantom.SetChildTransforms(focus.GetComponent<SnappableObject>());
         }
 
         if (Input.GetMouseButton(0))
         {
-            RaycastHit hitAgain;
-            if (Physics.Raycast(mousePositionRay, out hitAgain, 1000f, snappingMask))
+            GameObject closestSnapPoint = null;
+            GameObject localClosestSnapPoint = null;
+            float minDist = 0;
+            foreach (var point in snapPhantom.children)
             {
-                if (hitAgain.collider.gameObject.transform.root.gameObject != focus)
-                    focus.transform.position = hitAgain.collider.gameObject.transform.position;
+                var snapScreenPoint = cam.WorldToScreenPoint(point.transform.position);
+                Ray snapRay = cam.ScreenPointToRay(snapScreenPoint);
+
+                if (Physics.Raycast(snapRay, out hit, 1000f, snappingMask))
+                {
+                    read = string.Format("Hitpoint is {0}, colliding with {1}", point.name, hit.collider.gameObject.name);
+                    if (hit.collider.gameObject.transform.root.gameObject != focus)
+                    {
+                        if (closestSnapPoint == null)
+                        {
+                            closestSnapPoint = hit.collider.gameObject;
+                            localClosestSnapPoint = point;
+                            minDist = Vector3.Distance(closestSnapPoint.transform.position, localClosestSnapPoint.transform.position);
+                        }
+                        else if (Vector3.Distance(hit.collider.gameObject.transform.position, point.transform.position) < minDist)
+                        {
+                            closestSnapPoint = hit.collider.gameObject;
+                            localClosestSnapPoint = point;
+                        }
+                    }
+                }
+                if (Physics.Raycast(snapRay, out hit, 1000f, terrainDragMask))
+                {
+                    Debug.DrawLine(snapRay.origin, hit.point, Color.red);
+                }
+            }
+            if (closestSnapPoint != null)
+            {
+                var offset = -localClosestSnapPoint.transform.localPosition;
+                focus.transform.position = closestSnapPoint.transform.position + offset;
+            }
+            else
+                focus.transform.position = terrainHitPoint;
+
+            /*
+            if (Physics.Raycast(mousePositionRay, out hit, 1000f, snappingMask))
+            {
+                if (hit.collider.gameObject.transform.root.gameObject != focus)
+                    focus.transform.position = hit.collider.gameObject.transform.position;
                 else
                     focus.transform.position = terrainHitPoint;
             }
             else
                 focus.transform.position = terrainHitPoint;
+            */
+            snapPhantom.transform.position = terrainHitPoint;
+        }
+
+        if (Input.GetMouseButtonUp(0))
+        {
+            //Check for intersection here
+            //if (focus.GetComponentInChildren<BoxCollider>().bounds.Intersects(focus.GetComponentInChildren<BoxCollider>().bounds) )
+            new CreateAction(onClickObject, focus.transform.position, focus.transform.rotation);
+            Destroy(focus);
         }
 
         //pan around
