@@ -32,6 +32,7 @@ public class PlayerController : BehaviourSingleton<PlayerController>
     private float zoom;
 
     public LayerMask terrainDragMask;
+    public LayerMask interactMask;
     RaycastHit hit;
     Camera cam;
 
@@ -111,11 +112,20 @@ public class PlayerController : BehaviourSingleton<PlayerController>
 
         if (Input.GetMouseButtonDown(0)) //Left click
         {
-            focus = GameObject.Instantiate(onClickObject, terrainHitPoint, Quaternion.identity); //Instantiate an object
-            snapPhantom.SetChildTransforms(focus.GetComponent<SnappableObject>());               //Snap phantom is an object that emulates the transforms of all the connection points relative to the root of the object
+            if (onClickObject == null)
+            {
+                if (Physics.Raycast(mousePositionRay, out hit, 1000f, interactMask))
+                {
+                    //MoveAction Start
+                    focus = hit.collider.gameObject;
+                }
+            }
+            else
+                focus = GameObject.Instantiate(onClickObject, terrainHitPoint, Quaternion.identity); //Instantiate an object
+            snapPhantom.SetChildTransforms(focus.GetComponent<SnappableObject>());  //Snap phantom is an object that emulates the transforms of all the connection points relative to the root of the object
         }
 
-        if (Input.GetMouseButton(0))     //Left click held
+        if (Input.GetMouseButton(0) && focus != null)   //Left click held
         {
             GameObject closestSnapPoint = null;         //The closest snap point detected
             GameObject localClosestSnapPoint = null;    //The closest snap point on our focus object
@@ -158,11 +168,14 @@ public class PlayerController : BehaviourSingleton<PlayerController>
             snapPhantom.transform.position = terrainHitPoint;
         }
 
-        if (Input.GetMouseButtonUp(0))
+        if (Input.GetMouseButtonUp(0) && onClickObject != null)
         {
             //Check for intersection here
+            //TODO: dont destroy object instance
             new CreateAction(onClickObject, focus.transform.position, focus.transform.rotation);
-            Destroy(focus);
+            if (focus) Destroy(focus);
+            onClickObject = null;
+            focus = null;
         }
 
         //pan around
