@@ -1,6 +1,6 @@
 ﻿using System;
 
-public class DestroyAction : Action, IAction
+public class DestroyAction : PlayerAction, IAction
 {
     public void Do()
     {

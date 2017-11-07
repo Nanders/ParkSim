@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 
-public class MoveAction : Action, IAction
+public class MoveAction : PlayerAction, IAction
 {
     private GameObject go;
     private Vector3 from;

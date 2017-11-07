@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 
-public class CreateAction : Action, IAction
+public class CreateAction : PlayerAction, IAction
 {
     private GameObject go;
     public GameObject createdGo { get; private set; }

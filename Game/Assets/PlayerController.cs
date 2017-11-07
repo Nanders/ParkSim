@@ -2,9 +2,8 @@
 
 public class PlayerController : BehaviourSingleton<PlayerController>
 {
-    public string read;
-
     public GameObject focus { get; private set; }
+    public bool drawRaycasts = false;
     public SnapPhantom snapPhantom;
     public GameObject onClickObject;
     public GameObject[] objects;
@@ -107,31 +106,30 @@ public class PlayerController : BehaviourSingleton<PlayerController>
         cam.orthographicSize = Mathf.Lerp(cam.orthographicSize, zoom, Time.deltaTime * zoomSmooth);
         boundingCollider.radius = cam.orthographicSize;
 
-        if (Input.GetMouseButtonDown(1))
+        if (Input.GetMouseButtonDown(1)) //Right click
             lastMousePoint = Input.mousePosition;
 
-        if (Input.GetMouseButtonDown(0))
+        if (Input.GetMouseButtonDown(0)) //Left click
         {
-            focus = GameObject.Instantiate(onClickObject, terrainHitPoint, Quaternion.identity);
-            snapPhantom.SetChildTransforms(focus.GetComponent<SnappableObject>());
+            focus = GameObject.Instantiate(onClickObject, terrainHitPoint, Quaternion.identity); //Instantiate an object
+            snapPhantom.SetChildTransforms(focus.GetComponent<SnappableObject>());               //Snap phantom is an object that emulates the transforms of all the connection points relative to the root of the object
         }
 
-        if (Input.GetMouseButton(0))
+        if (Input.GetMouseButton(0))     //Left click held
         {
-            GameObject closestSnapPoint = null;
-            GameObject localClosestSnapPoint = null;
-            float minDist = 0;
+            GameObject closestSnapPoint = null;         //The closest snap point detected
+            GameObject localClosestSnapPoint = null;    //The closest snap point on our focus object
+            float minDist = 0;                          //The distance between the above
             foreach (var point in snapPhantom.children)
             {
-                var snapScreenPoint = cam.WorldToScreenPoint(point.transform.position);
+                var snapScreenPoint = cam.WorldToScreenPoint(point.transform.position);     //We do this in this fashion because we use a ortho camera, so we want parallel raycasts
                 Ray snapRay = cam.ScreenPointToRay(snapScreenPoint);
 
                 if (Physics.Raycast(snapRay, out hit, 1000f, snappingMask))
                 {
-                    read = string.Format("Hitpoint is {0}, colliding with {1}", point.name, hit.collider.gameObject.name);
-                    if (hit.collider.gameObject.transform.root.gameObject != focus)
+                    if (hit.collider.gameObject.transform.root.gameObject != focus)         //The object we hit is not us (This shouldn't happen)
                     {
-                        if (closestSnapPoint == null)
+                        if (closestSnapPoint == null)                                       //Find to the closest point
                         {
                             closestSnapPoint = hit.collider.gameObject;
                             localClosestSnapPoint = point;
@@ -144,7 +142,7 @@ public class PlayerController : BehaviourSingleton<PlayerController>
                         }
                     }
                 }
-                if (Physics.Raycast(snapRay, out hit, 1000f, terrainDragMask))
+                if (Physics.Raycast(snapRay, out hit, 1000f, terrainDragMask) && drawRaycasts)
                 {
                     Debug.DrawLine(snapRay.origin, hit.point, Color.red);
                 }
@@ -157,24 +155,12 @@ public class PlayerController : BehaviourSingleton<PlayerController>
             else
                 focus.transform.position = terrainHitPoint;
 
-            /*
-            if (Physics.Raycast(mousePositionRay, out hit, 1000f, snappingMask))
-            {
-                if (hit.collider.gameObject.transform.root.gameObject != focus)
-                    focus.transform.position = hit.collider.gameObject.transform.position;
-                else
-                    focus.transform.position = terrainHitPoint;
-            }
-            else
-                focus.transform.position = terrainHitPoint;
-            */
             snapPhantom.transform.position = terrainHitPoint;
         }
 
         if (Input.GetMouseButtonUp(0))
         {
             //Check for intersection here
-            //if (focus.GetComponentInChildren<BoxCollider>().bounds.Intersects(focus.GetComponentInChildren<BoxCollider>().bounds) )
             new CreateAction(onClickObject, focus.transform.position, focus.transform.rotation);
             Destroy(focus);
         }
